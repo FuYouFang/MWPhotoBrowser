@@ -137,12 +137,21 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 - (void)viewDidLoad {
     
     // Validate grid settings
+    // s 1 e 1 d 1 -> s 1 e 1 d 1
+    // s 1 e 0 d 0 -> s 1 e 1 d 1
+    // s 1 e 1 d 0 -> s 0 e 0 d 0
+    // s 1 e 0 d 1 -> s 1 e 1 d 1
+    // s 0 e 1 d 0 -> s 0 e 0 d 0
+    // s 0 e 0 d 0 -> s 0 e 0 d 0
+    // s 0 e 1 d 1 -> s 0 e 1 d 1
+    // s 0 e 0 d 1 -> s 0 e 0 d 0
     if (_startOnGrid) _enableGrid = YES;
     if (_enableGrid) {
         _enableGrid = [_delegate respondsToSelector:@selector(photoBrowser:thumbPhotoAtIndex:)];
     }
     if (!_enableGrid) _startOnGrid = NO;
 	
+    
 	// View
 	self.view.backgroundColor = [UIColor blackColor];
     self.view.clipsToBounds = YES;
@@ -159,6 +168,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     _pagingScrollView.contentSize = [self contentSizeForPagingScrollView];
 	[self.view addSubview:_pagingScrollView];
 	
+
     // Toolbar
     _toolbar = [[UIToolbar alloc] initWithFrame:[self frameForToolbarAtOrientation:self.interfaceOrientation]];
     _toolbar.tintColor = [UIColor whiteColor];
@@ -975,6 +985,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     CGRect frame = self.view.bounds;// [[UIScreen mainScreen] bounds];
     frame.origin.x -= PADDING;
     frame.size.width += (2 * PADDING);
+    //CGRectIntegral 将表示原点的值向下取整，表示大小的值向上取整，这样就保证了你的绘制代码平整地对齐到像素边界。
     return CGRectIntegral(frame);
 }
 
@@ -1002,10 +1013,18 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	return CGPointMake(newOffset, 0);
 }
 
+
 - (CGRect)frameForToolbarAtOrientation:(UIInterfaceOrientation)orientation {
     CGFloat height = 44;
-    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone &&
-        UIInterfaceOrientationIsLandscape(orientation)) height = 32;
+    // 1.判断设备
+    // [[UIDevice currentDevice] userInterfaceIdiom];
+    // 2.判断方向是否为横屏
+    // UIInterfaceOrientationIsLandscape()
+    // 3.iPhone 横屏 toolBar 的高度为 32，其他为 44
+    if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone
+        && UIInterfaceOrientationIsLandscape(orientation)) {
+        height = 32;
+    }
 	return CGRectIntegral(CGRectMake(0, self.view.bounds.size.height - height, self.view.bounds.size.width, height));
 }
 
