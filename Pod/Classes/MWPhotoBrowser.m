@@ -173,6 +173,17 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     _toolbar = [[UIToolbar alloc] initWithFrame:[self frameForToolbarAtOrientation:self.interfaceOrientation]];
     _toolbar.tintColor = [UIColor whiteColor];
     _toolbar.barTintColor = nil;
+    /**
+    Use these methods to set and access custom background images for toolbars.
+    Default is nil. When non-nil the image will be used instead of the system image for toolbars in the specified position.
+    For the barMetrics argument, UIBarMetricsDefault is the fallback.
+            
+    DISCUSSION: Interdependence of barStyle, tintColor, backgroundImage.
+    When barStyle or tintColor is set as well as the bar's background image,
+    the bar buttons (unless otherwise customized) will inherit the underlying barStyle or tintColor.
+     */
+    
+    // UIBarMetricsDefault 表示横屏竖屏都显示
     [_toolbar setBackgroundImage:nil forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsDefault];
     [_toolbar setBackgroundImage:nil forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsLandscapePhone];
     _toolbar.barStyle = UIBarStyleBlackTranslucent;
