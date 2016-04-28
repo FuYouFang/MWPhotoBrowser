@@ -12,6 +12,7 @@
 @interface MWGridViewController : UICollectionViewController {}
 
 @property (nonatomic, assign) MWPhotoBrowser *browser;
+/** 是否选择图片 */
 @property (nonatomic) BOOL selectionMode;
 @property (nonatomic) CGPoint initialContentOffset;
 

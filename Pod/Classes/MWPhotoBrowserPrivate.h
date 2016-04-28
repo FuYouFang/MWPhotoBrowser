@@ -49,6 +49,7 @@
     UIStatusBarStyle _previousStatusBarStyle;
     UIColor *_previousNavBarTintColor;
     UIColor *_previousNavBarBarTintColor;
+    /** 上个控制器返回按钮，（可能会改掉，所有要保留） */
     UIBarButtonItem *_previousViewControllerBackButton;
     UIImage *_previousNavigationBarBackgroundImageDefault;
     UIImage *_previousNavigationBarBackgroundImageLandscapePhone;

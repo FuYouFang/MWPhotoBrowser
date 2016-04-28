@@ -310,6 +310,9 @@
 
 }
 
+/**
+ * 在可以通过 path 或者 url 重新获取图片的时，释放掉图片
+ */
 // Release if we can get it again from path or url
 - (void)unloadUnderlyingImage {
     _loadingInProgress = NO;

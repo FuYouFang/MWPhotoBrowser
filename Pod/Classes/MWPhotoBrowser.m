@@ -99,6 +99,10 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     [[SDImageCache sharedImageCache] clearMemory]; // clear memory
 }
 
+/**
+ *  释放所有的图片
+ *  preserveCurrent 是否保留当前的图片
+ */
 - (void)releaseAllUnderlyingPhotos:(BOOL)preserveCurrent {
     // Create a copy in case this array is modified while we are looping through
     // Release photos
@@ -230,17 +234,21 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if ([self.navigationController.viewControllers objectAtIndex:0] == self) {
         // We're first on stack so show done button
         _doneButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"Done", nil) style:UIBarButtonItemStylePlain target:self action:@selector(doneButtonPressed:)];
+        // 设置 barButtonItem 横屏、竖屏，正常状态，高亮状态，不同的图片
         // Set appearance
         [_doneButton setBackgroundImage:nil forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
         [_doneButton setBackgroundImage:nil forState:UIControlStateNormal barMetrics:UIBarMetricsLandscapePhone];
         [_doneButton setBackgroundImage:nil forState:UIControlStateHighlighted barMetrics:UIBarMetricsDefault];
         [_doneButton setBackgroundImage:nil forState:UIControlStateHighlighted barMetrics:UIBarMetricsLandscapePhone];
+#warning TOLearn 为什么这里放一个空的字典
         [_doneButton setTitleTextAttributes:[NSDictionary dictionary] forState:UIControlStateNormal];
         [_doneButton setTitleTextAttributes:[NSDictionary dictionary] forState:UIControlStateHighlighted];
         self.navigationItem.rightBarButtonItem = _doneButton;
     } else {
+        // 如果不是 navigation 的第一个控制器，则显示返回的按钮
+        // 当前控制器左边的返回按钮现实的内容是由通过设置上个控制器的的 backBarButtonItem 的内容设置的
         // We're not first so show back button
-        UIViewController *previousViewController = [self.navigationController.viewControllers objectAtIndex:self.navigationController.viewControllers.count-2];
+        UIViewController *previousViewController = [self.navigationController.viewControllers objectAtIndex:self.navigationController.viewControllers.count - 2];
         NSString *backButtonTitle = previousViewController.navigationItem.backBarButtonItem ? previousViewController.navigationItem.backBarButtonItem.title : previousViewController.title;
         UIBarButtonItem *newBackButton = [[UIBarButtonItem alloc] initWithTitle:backButtonTitle style:UIBarButtonItemStylePlain target:nil action:nil];
         // Appearance
@@ -262,6 +270,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     NSMutableArray *items = [[NSMutableArray alloc] init];
 
     // Left button - Grid
+    // 是否现实格栅显示方式
     if (_enableGrid) {
         hasItems = YES;
         [items addObject:[[UIBarButtonItem alloc] initWithImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/UIBarButtonItemGrid" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] style:UIBarButtonItemStylePlain target:self action:@selector(showGridAnimated)]];
@@ -637,6 +646,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
     // Update current page index
     if (numberOfPhotos > 0) {
+        // 可以通过使用 max 和 min 的方式减小代码量
         _currentPageIndex = MAX(0, MIN(_currentPageIndex, numberOfPhotos - 1));
     } else {
         _currentPageIndex = 0;
@@ -644,9 +654,11 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
     // Update layout
     if ([self isViewLoaded]) {
+        // 删除所有 scrollview 中的东西
         while (_pagingScrollView.subviews.count) {
             [[_pagingScrollView.subviews lastObject] removeFromSuperview];
         }
+        
         [self performLayout];
         [self.view setNeedsLayout];
     }
@@ -1107,6 +1119,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 #pragma mark - Navigation
 
+//****************************************
 - (void)updateNavigation {
     
 	// Title
@@ -1583,6 +1596,11 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 #pragma mark - Misc
 
+/**
+ *  两种方法会调用下面的方法
+ *  (1)点击右上角的 done 按钮
+ *  (2)上下滑动退出
+ */
 - (void)doneButtonPressed:(id)sender {
     // Only if we're modal and there's a done button
     if (_doneButton) {

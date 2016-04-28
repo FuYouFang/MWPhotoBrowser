@@ -23,6 +23,12 @@
 
 @required
 
+/**
+ *  返回下面一张图片用于展示
+ *  如果这个图片不是能够立马获取到的（需要加载进内存，提供解压好的图片），或者需要从资源处加载（缓存，文件，网络，等等）
+ *  重要：从其他资源获取图片时，不应该用这个方法去初始化
+ *  这个方法返回为空时， photo browser  -loadUnderlyingImageAndNotify: 将会调用这个接口
+ */
 // Return underlying UIImage to be displayed
 // Return nil if the image is not immediately available (loaded into memory, preferably
 // already decompressed) and needs to be loaded from a source (cache, file, web, etc)
@@ -46,6 +52,8 @@
 //                                                     object:self];
 - (void)performLoadUnderlyingImageAndNotify;
 
+// 当图片浏览决定不需要这个图片数据的时候，或者内存不足的时候，将会调用这个方法
+// 只要图片可以重新加载，就应该释放掉放在下面的图片数据（比较大的，或者压缩的）
 // This is called when the photo browser has determined the photo data
 // is no longer needed or there are low memory conditions
 // You should release any underlying (possibly large and decompressed) image data
