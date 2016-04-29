@@ -11,6 +11,7 @@
 #import <MediaPlayer/MediaPlayer.h>
 #import "MWGridViewController.h"
 #import "MWZoomingScrollView.h"
+#import <AVKit/AVKit.h>
 
 // Declare private methods of browser
 @interface MWPhotoBrowser () {
@@ -25,7 +26,9 @@
 	UIScrollView *_pagingScrollView;
 	
 	// Paging & layout
-	NSMutableSet *_visiblePages, *_recycledPages;
+    /** MWZoomingScroolView */
+    NSMutableSet *_visiblePages;
+    NSMutableSet*_recycledPages;
 	NSUInteger _currentPageIndex;
     NSUInteger _previousPageIndex;
     CGRect _previousLayoutBounds;
@@ -54,9 +57,11 @@
     UIImage *_previousNavigationBarBackgroundImageDefault;
     UIImage *_previousNavigationBarBackgroundImageLandscapePhone;
     
+
     // Video
     MPMoviePlayerViewController *_currentVideoPlayerViewController;
     NSUInteger _currentVideoIndex;
+    // NS_CLASS_AVAILABLE_IOS(2_0)
     UIActivityIndicatorView *_currentVideoLoadingIndicator;
     
     // Misc

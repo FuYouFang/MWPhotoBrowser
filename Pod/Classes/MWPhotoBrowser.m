@@ -1312,6 +1312,12 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 }
 
 - (void)clearCurrentVideo {
+    // 1 AVPlayerViewController
+    //AVPlayerViewController *playerViewController; NS_CLASS_AVAILABLE_IOS(8_0)
+    
+    // 2 MPMoviePlayerViewController
+    //NS_DEPRECATED_IOS(3_2, 9_0, "Use AVPlayerViewController in AVKit.")
+    //__TVOS_PROHIBITED
     [_currentVideoPlayerViewController.moviePlayer stop];
     [_currentVideoLoadingIndicator removeFromSuperview];
     _currentVideoPlayerViewController = nil;
