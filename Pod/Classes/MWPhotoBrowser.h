@@ -56,6 +56,8 @@
 
 // Customise image selection icons as they are the only icons with a colour tint
 // Icon should be located in the app's main bundle
+/** 自定义的选中的标记，用一些单色的主题色 */
+/** 图标 需要放在 app 的 main bundle */
 @property (nonatomic, strong) NSString *customImageSelectedIconName;
 @property (nonatomic, strong) NSString *customImageSelectedSmallIconName;
 

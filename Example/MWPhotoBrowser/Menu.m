@@ -30,6 +30,8 @@
         
         UIBarButtonItem *item = [[UIBarButtonItem alloc] initWithCustomView:_segmentedControl];
         self.navigationItem.rightBarButtonItem = item;
+        // 1.设置导航返回的title
+        // 2.返回的 Item 的taget 和 action 都是空
         self.navigationItem.backBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Back" style:UIBarButtonItemStyleBordered target:nil action:nil];
 
         [self loadAssets];
@@ -349,7 +351,7 @@
 		case 9: {
             @synchronized(_assets) {
                 NSMutableArray *copy = [_assets copy];
-                if (NSClassFromString(@"PHAsset")) {
+                if (NSClassFromString(@"PHAsset")) { // NS_CLASS_AVAILABLE_IOS(8_0) @interface PHAsset
                     // Photos library
                     UIScreen *screen = [UIScreen mainScreen];
                     CGFloat scale = screen.scale;
@@ -363,11 +365,12 @@
                     }
                 } else {
                     // Assets library
-                    for (ALAsset *asset in copy) {
+                    for (ALAsset *asset in copy) { // NS_CLASS_DEPRECATED_IOS(4_0, 9_0)
                         MWPhoto *photo = [MWPhoto photoWithURL:asset.defaultRepresentation.url];
                         [photos addObject:photo];
                         MWPhoto *thumb = [MWPhoto photoWithImage:[UIImage imageWithCGImage:asset.thumbnail]];
                         [thumbs addObject:thumb];
+                        // 对视频的的处理
                         if ([asset valueForProperty:ALAssetPropertyType] == ALAssetTypeVideo) {
                             photo.videoURL = asset.defaultRepresentation.url;
                             thumb.isVideo = true;
@@ -400,6 +403,7 @@
 //    browser.customImageSelectedSmallIconName = @"ImageSelectedSmall.png";
     
     // Reset selections
+    // 重置选中的 photos
     if (displaySelectionButtons) {
         _selections = [NSMutableArray new];
         for (int i = 0; i < photos.count; i++) {
@@ -412,8 +416,10 @@
         // Push
         [self.navigationController pushViewController:browser animated:YES];
     } else {
+        self.modalPresentationStyle = UIModalPresentationPageSheet;
         // Modal
         UINavigationController *nc = [[UINavigationController alloc] initWithRootViewController:browser];
+        // 弹出的方式是相互融合
         nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
         [self presentViewController:nc animated:YES completion:nil];
     }

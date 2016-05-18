@@ -13,6 +13,7 @@
 #import "SDImageCache.h"
 #import "UIImage+MWPhotoBrowser.h"
 
+/** 图片跟 scrollview 边缘的距离 */
 #define PADDING                  10
 
 static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
@@ -51,6 +52,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 - (void)_initialisation {
     
+    // 获取应该如何隐藏 status bar
     // Defaults
     NSNumber *isVCBasedStatusBarAppearanceNum = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UIViewControllerBasedStatusBarAppearance"];
     if (isVCBasedStatusBarAppearanceNum) {
@@ -58,6 +60,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     } else {
         _isVCBasedStatusBarAppearance = YES; // default
     }
+    
     self.hidesBottomBarWhenPushed = YES;
     _hasBelongedToViewController = NO;
     _photoCount = NSNotFound;
@@ -126,13 +129,13 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 - (void)didReceiveMemoryWarning {
 
+    // 释放掉所有缓存的不在使用的数据，图片
 	// Release any cached data, images, etc that aren't in use.
     [self releaseAllUnderlyingPhotos:YES];
 	[_recycledPages removeAllObjects];
 	
 	// Releases the view if it doesn't have a superview.
     [super didReceiveMemoryWarning];
-	
 }
 
 #pragma mark - View Loading
@@ -141,14 +144,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 - (void)viewDidLoad {
     
     // Validate grid settings
-    // s 1 e 1 d 1 -> s 1 e 1 d 1
-    // s 1 e 0 d 0 -> s 1 e 1 d 1
-    // s 1 e 1 d 0 -> s 0 e 0 d 0
-    // s 1 e 0 d 1 -> s 1 e 1 d 1
-    // s 0 e 1 d 0 -> s 0 e 0 d 0
-    // s 0 e 0 d 0 -> s 0 e 0 d 0
-    // s 0 e 1 d 1 -> s 0 e 1 d 1
-    // s 0 e 0 d 1 -> s 0 e 0 d 0
+    // 检测格栅显示的设置
     if (_startOnGrid) _enableGrid = YES;
     if (_enableGrid) {
         _enableGrid = [_delegate respondsToSelector:@selector(photoBrowser:thumbPhotoAtIndex:)];
@@ -174,23 +170,48 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	
 
     // Toolbar
+    // self.interfaceOrientation; 获取当前的屏幕方向
     _toolbar = [[UIToolbar alloc] initWithFrame:[self frameForToolbarAtOrientation:self.interfaceOrientation]];
     _toolbar.tintColor = [UIColor whiteColor];
     _toolbar.barTintColor = nil;
+
+    
     /**
-    Use these methods to set and access custom background images for toolbars.
-    Default is nil. When non-nil the image will be used instead of the system image for toolbars in the specified position.
-    For the barMetrics argument, UIBarMetricsDefault is the fallback.
-            
-    DISCUSSION: Interdependence of barStyle, tintColor, backgroundImage.
-    When barStyle or tintColor is set as well as the bar's background image,
-    the bar buttons (unless otherwise customized) will inherit the underlying barStyle or tintColor.
+     typedef NS_ENUM(NSInteger, UIBarPosition) {
+     UIBarPositionAny = 0,
+     UIBarPositionBottom = 1, // The bar is at the bottom of its local context, and directional decoration draws accordingly (e.g., shadow above the bar).
+     UIBarPositionTop = 2, // The bar is at the top of its local context, and directional decoration draws accordingly (e.g., shadow below the bar)
+     UIBarPositionTopAttached = 3, // The bar is at the top of the screen (as well as its local context), and its background extends upward—currently only enough for the status bar.
+     } NS_ENUM_AVAILABLE_IOS(7_0);
+     
+     1.UIBarPostion 表示导航栏的位置
+     UIBarPositionAny(不指定位置)
+     UIBarPositionBottom(位于视图底部)
+     UIBarPositionTop(位于视图顶部)
+     UIBarPositionTopAttached(位于屏幕顶部同时也在其视图的顶部)；
+     
+     2.UIBarMetrics 表示导航栏的外观。
+     UIBarMetricsDefault(设备默认的外观)
+     UIBarMetricsCompact(手机尺寸的外观)
+     
+     */
+    /**
+     Use these methods to set and access custom background images for toolbars.
+     Default is nil. When non-nil the image will be used instead of the system image for toolbars in the specified position.
+     For the barMetrics argument, UIBarMetricsDefault is the fallback.
+     
+     DISCUSSION: Interdependence of barStyle, tintColor, backgroundImage.
+     When barStyle or tintColor is set as well as the bar's background image,
+     the bar buttons (unless otherwise customized) will inherit the underlying barStyle or tintColor.
      */
     
     // UIBarMetricsDefault 表示横屏竖屏都显示
+    //
     [_toolbar setBackgroundImage:nil forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsDefault];
     [_toolbar setBackgroundImage:nil forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsLandscapePhone];
+    // barStye 和 透明度
     _toolbar.barStyle = UIBarStyleBlackTranslucent;
+    _toolbar.translucent = YES;
     _toolbar.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
     
     // Toolbar Items
@@ -209,6 +230,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     [self reloadData];
     
     // Swipe to dismiss
+    // 上下滑动退出
     if (_enableSwipeToDismiss) {
         UISwipeGestureRecognizer *swipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(doneButtonPressed:)];
         swipeGesture.direction = UISwipeGestureRecognizerDirectionDown | UISwipeGestureRecognizerDirectionUp;
@@ -220,6 +242,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	
 }
 
+/** 
+ *  设置界面信息
+ */
 - (void)performLayout {
     
     // Setup
@@ -250,6 +275,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         // We're not first so show back button
         UIViewController *previousViewController = [self.navigationController.viewControllers objectAtIndex:self.navigationController.viewControllers.count - 2];
         NSString *backButtonTitle = previousViewController.navigationItem.backBarButtonItem ? previousViewController.navigationItem.backBarButtonItem.title : previousViewController.title;
+        // new 一个 backBarButtonItem 只需要提供 title 就可以了
         UIBarButtonItem *newBackButton = [[UIBarButtonItem alloc] initWithTitle:backButtonTitle style:UIBarButtonItemStylePlain target:nil action:nil];
         // Appearance
         [newBackButton setBackButtonBackgroundImage:nil forState:UIControlStateNormal barMetrics:UIBarMetricsDefault];
@@ -338,6 +364,11 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     [super viewDidUnload];
 }
 
+/**
+ *  1.如果正在弹出一个控制器 则显示对应的控制器的 prefersStatusBarHidden
+ *  2.没有，则返回 navigation 中上一个的 prefersStatusBarHidden
+ *  3.返回 NO
+ */
 - (BOOL)presentingViewControllerPrefersStatusBarHidden {
     UIViewController *presenting = self.presentingViewController;
     if (presenting) {
@@ -367,12 +398,15 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     // Status bar
     if (!_viewHasAppearedInitially) {
         _leaveStatusBarAlone = [self presentingViewControllerPrefersStatusBarHidden];
+#warning TOLearn
         // Check if status bar is hidden on first appear, and if so then ignore it
+        // 获取 statusBar 的 frame 并和 zero 比较
         if (CGRectEqualToRect([[UIApplication sharedApplication] statusBarFrame], CGRectZero)) {
             _leaveStatusBarAlone = YES;
         }
     }
     // Set style
+    // 记录之前 statusBarStyle 并设置为 白色
     if (!_leaveStatusBarAlone && UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
         _previousStatusBarStyle = [[UIApplication sharedApplication] statusBarStyle];
         [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent animated:animated];
@@ -382,13 +416,15 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     if (!_viewIsActive && [self.navigationController.viewControllers objectAtIndex:0] != self) {
         [self storePreviousNavBarAppearance];
     }
+    
     [self setNavBarAppearance:animated];
     
     // Update UI
+    // 更新 Controller
 	[self hideControlsAfterDelay];
     
     // Initial appearance
-    if (!_viewHasAppearedInitially) {
+    if (!_viewHasAppearedInitially) { // view 显示完成
         if (_startOnGrid) {
             [self showGrid:NO];
         }
@@ -396,6 +432,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
     // If rotation occured while we're presenting a modal
     // and the index changed, make sure we show the right one now
+    // 在展示一个 model 时，如果发生旋转，导致正在显示的 Index 发生改变，我们应该确保显示一个正确的。
     if (_currentPageIndex != _pageIndexBeforeRotation) {
         [self jumpToPageAtIndex:_pageIndexBeforeRotation animated:NO];
     }
@@ -469,6 +506,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 #pragma mark - Nav Bar Appearance
 
+/**
+ *  设置 navigation 的样式
+ */
 - (void)setNavBarAppearance:(BOOL)animated {
     [self.navigationController setNavigationBarHidden:NO animated:animated];
     UINavigationBar *navBar = self.navigationController.navigationBar;
@@ -481,6 +521,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     [navBar setBackgroundImage:nil forBarMetrics:UIBarMetricsLandscapePhone];
 }
 
+/**
+ *  保存之前 navigation 的样式
+ */
 - (void)storePreviousNavBarAppearance {
     _didSavePreviousStateOfNavBar = YES;
     _previousNavBarBarTintColor = self.navigationController.navigationBar.barTintColor;
@@ -532,8 +575,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	// Get paging scroll view frame to determine if anything needs changing
 	CGRect pagingScrollViewFrame = [self frameForPagingScrollView];
     
+#warning TODO 这个值的作用是什么
 	// Frame needs changing
-    if (!_skipNextPagingScrollViewPositioning) {
+    if (!_skipNextPagingScrollViewPositioning) { // 跳过  // Stop specific layout being triggered
         _pagingScrollView.frame = pagingScrollViewFrame;
     }
     _skipNextPagingScrollViewPositioning = NO;
@@ -541,6 +585,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	// Recalculate contentSize based on current orientation
 	_pagingScrollView.contentSize = [self contentSizeForPagingScrollView];
 	
+#warning TOLearn 在 - (void)viewWillLayoutSubviews 中设置 page 和各种控件的位置
 	// Adjust frames and configuration of each visible page
 	for (MWZoomingScrollView *page in _visiblePages) {
         NSUInteger index = page.index;
@@ -556,12 +601,12 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         }
         
         // Adjust scales if bounds has changed since last time
+        // 如果 self.view 的 bounds 改变，则调整 Page 的 scales
         if (!CGRectEqualToRect(_previousLayoutBounds, self.view.bounds)) {
             // Update zooms for new bounds
             [page setMaxMinZoomScalesForCurrentBounds];
             _previousLayoutBounds = self.view.bounds;
         }
-
 	}
     
     // Adjust video loading indicator if it's visible
@@ -647,6 +692,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     // Update current page index
     if (numberOfPhotos > 0) {
         // 可以通过使用 max 和 min 的方式减小代码量
+#warning TODO 此处是否还需要用 max 再包一层
         _currentPageIndex = MAX(0, MIN(_currentPageIndex, numberOfPhotos - 1));
     } else {
         _currentPageIndex = 0;
@@ -655,6 +701,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     // Update layout
     if ([self isViewLoaded]) {
         // 删除所有 scrollview 中的东西
+#warning TOLearn 用这种方式来删除一个view中所有的子 view
         while (_pagingScrollView.subviews.count) {
             [[_pagingScrollView.subviews lastObject] removeFromSuperview];
         }
@@ -665,8 +712,11 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
 }
 
+/**
+ *  图片的数量
+ */
 - (NSUInteger)numberOfPhotos {
-    if (_photoCount == NSNotFound) {
+    if (_photoCount == NSNotFound) { // 判断是否获取或数值类型的值
         if ([_delegate respondsToSelector:@selector(numberOfPhotosInPhotoBrowser:)]) {
             _photoCount = [_delegate numberOfPhotosInPhotoBrowser:self];
         } else if (_fixedPhotosArray) {
@@ -709,6 +759,12 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     return photo;
 }
 
+/**
+ *  获取 index 的说明文字
+ *  顺序：
+ *  1.代理
+ *  2.图片是否符合相关协议
+ */
 - (MWCaptionView *)captionViewForPhotoAtIndex:(NSUInteger)index {
     MWCaptionView *captionView = nil;
     if ([_delegate respondsToSelector:@selector(photoBrowser:captionViewForPhotoAtIndex:)]) {
@@ -753,6 +809,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	return nil;
 }
 
+/**
+ *  加载相邻的图片
+ */
 - (void)loadAdjacentPhotosIfNecessary:(id<MWPhoto>)photo {
     MWZoomingScrollView *page = [self pageDisplayingPhoto:photo];
     if (page) {
@@ -801,14 +860,19 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 #pragma mark - Paging
 
+/**
+ *  设置 pages
+ */
 - (void)tilePages {
 	
 	// Calculate which pages should be visible
 	// Ignore padding as paging bounces encroach on that
 	// and lead to false page loads
+#warning TODO 此处的逻辑是怎样的？为什么这里乘了两个 PADDING
 	CGRect visibleBounds = _pagingScrollView.bounds;
-	NSInteger iFirstIndex = (NSInteger)floorf((CGRectGetMinX(visibleBounds)+PADDING*2) / CGRectGetWidth(visibleBounds));
-	NSInteger iLastIndex  = (NSInteger)floorf((CGRectGetMaxX(visibleBounds)-PADDING*2-1) / CGRectGetWidth(visibleBounds));
+	NSInteger iFirstIndex = (NSInteger)floorf((CGRectGetMinX(visibleBounds) + PADDING * 2) / CGRectGetWidth(visibleBounds));
+	NSInteger iLastIndex  = (NSInteger)floorf((CGRectGetMaxX(visibleBounds) - PADDING * 2 - 1) / CGRectGetWidth(visibleBounds));
+    
     if (iFirstIndex < 0) iFirstIndex = 0;
     if (iFirstIndex > [self numberOfPhotos] - 1) iFirstIndex = [self numberOfPhotos] - 1;
     if (iLastIndex < 0) iLastIndex = 0;
@@ -820,21 +884,26 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         pageIndex = page.index;
 		if (pageIndex < (NSUInteger)iFirstIndex || pageIndex > (NSUInteger)iLastIndex) {
 			[_recycledPages addObject:page];
+            
             [page.captionView removeFromSuperview];
             [page.selectedButton removeFromSuperview];
             [page.playButton removeFromSuperview];
             [page prepareForReuse];
 			[page removeFromSuperview];
+            
 			MWLog(@"Removed page at index %lu", (unsigned long)pageIndex);
 		}
 	}
+    // - (void)minusSet:(NSSet<ObjectType> *)otherSet;
+    // 向集合中删除一个 otherSet 集合的所有数据。
 	[_visiblePages minusSet:_recycledPages];
     while (_recycledPages.count > 2) // Only keep 2 recycled pages
+        // 删除任何一个 set 集合中的数据
         [_recycledPages removeObject:[_recycledPages anyObject]];
 	
 	// Add missing pages
 	for (NSUInteger index = (NSUInteger)iFirstIndex; index <= (NSUInteger)iLastIndex; index++) {
-		if (![self isDisplayingPageForIndex:index]) {
+		if (![self isDisplayingPageForIndex:index]) { // 显示的集合中不包含 现在要显示的 page
             
             // Add new page
 			MWZoomingScrollView *page = [self dequeueRecycledPage];
@@ -848,6 +917,8 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 			MWLog(@"Added page at index %lu", (unsigned long)index);
             
             // Add caption
+            // caption View 是加在 scrollview 上的
+            // 在 pageView 上有一个引用
             MWCaptionView *captionView = [self captionViewForPhotoAtIndex:index];
             if (captionView) {
                 captionView.frame = [self frameForCaptionView:captionView atIndex:index];
@@ -856,18 +927,23 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
             }
             
             // Add play button if needed
+            // 是否是视频， 在 scrollview 上添加 播放按钮
+            // pageView 上有对应的引用
             if (page.displayingVideo) {
                 UIButton *playButton = [UIButton buttonWithType:UIButtonTypeCustom];
                 [playButton setImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/PlayButtonOverlayLarge" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] forState:UIControlStateNormal];
                 [playButton setImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/PlayButtonOverlayLargeTap" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] forState:UIControlStateHighlighted];
                 [playButton addTarget:self action:@selector(playButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
                 [playButton sizeToFit];
+                
                 playButton.frame = [self frameForPlayButton:playButton atIndex:index];
                 [_pagingScrollView addSubview:playButton];
                 page.playButton = playButton;
             }
             
             // Add selected button
+            // 是否展示选择按键
+            // 选择的按钮是添加在 scrollview 上的， Page 上有对应的引用
             if (self.displaySelectionButtons) {
                 UIButton *selectedButton = [UIButton buttonWithType:UIButtonTypeCustom];
                 [selectedButton setImage:[UIImage imageForResourcePath:@"MWPhotoBrowser.bundle/ImageSelectedOff" ofType:@"png" inBundle:[NSBundle bundleForClass:[self class]]] forState:UIControlStateNormal];
@@ -879,6 +955,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
                 }
                 [selectedButton setImage:selectedOnImage forState:UIControlStateSelected];
                 [selectedButton sizeToFit];
+                // 取消图片点击的高亮效果
                 selectedButton.adjustsImageWhenHighlighted = NO;
                 [selectedButton addTarget:self action:@selector(selectedButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
                 selectedButton.frame = [self frameForSelectedButton:selectedButton atIndex:index];
@@ -886,7 +963,6 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
                 page.selectedButton = selectedButton;
                 selectedButton.selected = [self photoIsSelectedAtIndex:index];
             }
-            
 		}
 	}
 	
@@ -922,18 +998,25 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	MWZoomingScrollView *thePage = nil;
 	for (MWZoomingScrollView *page in _visiblePages) {
 		if (page.photo == photo) {
-			thePage = page; break;
+			thePage = page;
+            break;
 		}
 	}
 	return thePage;
 }
 
+/**
+ *  配置 page
+ */
 - (void)configurePage:(MWZoomingScrollView *)page forIndex:(NSUInteger)index {
 	page.frame = [self frameForPageAtIndex:index];
     page.index = index;
     page.photo = [self photoAtIndex:index];
 }
 
+/**
+ *  从缓存中返回个 page
+ */
 - (MWZoomingScrollView *)dequeueRecycledPage {
 	MWZoomingScrollView *page = [_recycledPages anyObject];
 	if (page) {
@@ -943,9 +1026,13 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 }
 
 // Handle page changes
+/**
+ *  处理 page 的变化
+ */
 - (void)didStartViewingPageAtIndex:(NSUInteger)index {
     
     // Handle 0 photos
+    // 处理 0 张图片
     if (![self numberOfPhotos]) {
         // Show controls
         [self setControlsHidden:NO animated:YES permanent:YES];
@@ -953,11 +1040,15 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     }
     
     // Handle video on page change
+    // 1.不是旋转
+    // 2.当前 Page 不是视频
+#warning TODO _currentVideoIndex 的意思是什么
     if (!_rotating && index != _currentVideoIndex) {
         [self clearCurrentVideo];
     }
     
     // Release images further away than +/-1
+    // 除 当前页，上一张，下一张 外其他的都释放，_photos 中用 [NSNull null] 来代替
     NSUInteger i;
     if (index > 0) {
         // Release anything < index - 1
@@ -984,6 +1075,8 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
     // Load adjacent images if needed and the photo is already
     // loaded. Also called after photo has been loaded in background
+    // 如果 Index 的 photo 已经加载完成，则加载它相邻的 photo image
+    // Index 的 photo 在后台加载完成时，也会去加载相邻的。
     id <MWPhoto> currentPhoto = [self photoAtIndex:index];
     if ([currentPhoto underlyingImage]) {
         // photo loaded so load ajacent now
@@ -1008,15 +1101,23 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     CGRect frame = self.view.bounds;// [[UIScreen mainScreen] bounds];
     frame.origin.x -= PADDING;
     frame.size.width += (2 * PADDING);
-    //CGRectIntegral 将表示原点的值向下取整，表示大小的值向上取整，这样就保证了你的绘制代码平整地对齐到像素边界。
+    // CGRectIntegral 将表示原点的值向下取整，表示大小的值向上取整，这样就保证了你的绘制代码平整地对齐到像素边界。
+    // 设置一个 view 的frame 时需要考虑
     return CGRectIntegral(frame);
 }
 
+/**
+ *  计算每一页的 frame
+ */
 - (CGRect)frameForPageAtIndex:(NSUInteger)index {
     // We have to use our paging scroll view's bounds, not frame, to calculate the page placement. When the device is in
     // landscape orientation, the frame will still be in portrait because the pagingScrollView is the root view controller's
     // view, so its frame is in window coordinate space, which is never rotated. Its bounds, however, will be in landscape
     // because it has a rotation transform applied.
+    // 计算 Page 的位置时，我们必须使用 paging scroll view 的 bounds，而不是 frame。
+    // 因为 pagingScrollView 是 root view controller 的 view，所以当设备在横屏的时候，它的 frame 并不会转换，依然和竖屏时的一样。
+    // 但是，它的 bounds 将会在横屏的时候进行一次转换。
+    
     CGRect bounds = _pagingScrollView.bounds;
     CGRect pageFrame = bounds;
     pageFrame.size.width -= (2 * PADDING);
@@ -1024,12 +1125,18 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     return CGRectIntegral(pageFrame);
 }
 
+/**
+ *  获取 scrollview 的contentSize
+ */
 - (CGSize)contentSizeForPagingScrollView {
     // We have to use the paging scroll view's bounds to calculate the contentSize, for the same reason outlined above.
     CGRect bounds = _pagingScrollView.bounds;
     return CGSizeMake(bounds.size.width * [self numberOfPhotos], bounds.size.height);
 }
 
+/**
+ *  获取 scrollview 的 contentOffset
+ */
 - (CGPoint)contentOffsetForPageAtIndex:(NSUInteger)index {
 	CGFloat pageWidth = _pagingScrollView.bounds.size.width;
 	CGFloat newOffset = index * pageWidth;
@@ -1039,6 +1146,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 - (CGRect)frameForToolbarAtOrientation:(UIInterfaceOrientation)orientation {
     CGFloat height = 44;
+#warning TOLearn 1.部分 view 的 frame 和设别类型和屏幕的横竖方向有关系
     // 1.判断设备
     // [[UIDevice currentDevice] userInterfaceIdiom];
     // 2.判断方向是否为横屏
@@ -1051,6 +1159,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	return CGRectIntegral(CGRectMake(0, self.view.bounds.size.height - height, self.view.bounds.size.width, height));
 }
 
+/**
+ *  计算 captionView 的 frame
+ */
 - (CGRect)frameForCaptionView:(MWCaptionView *)captionView atIndex:(NSUInteger)index {
     CGRect pageFrame = [self frameForPageAtIndex:index];
     CGSize captionSize = [captionView sizeThatFits:CGSizeMake(pageFrame.size.width, 0)];
@@ -1058,9 +1169,13 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
                                      pageFrame.size.height - captionSize.height - (_toolbar.superview?_toolbar.frame.size.height:0),
                                      pageFrame.size.width,
                                      captionSize.height);
+    
     return CGRectIntegral(captionFrame);
 }
 
+/**
+ *  计算 选中图片 的 frame
+ */
 - (CGRect)frameForSelectedButton:(UIButton *)selectedButton atIndex:(NSUInteger)index {
     CGRect pageFrame = [self frameForPageAtIndex:index];
     CGFloat padding = 20;
@@ -1076,6 +1191,10 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     return CGRectIntegral(selectedButtonFrame);
 }
 
+/**
+ *  计算 播放 按钮 的位置
+ *  在 page 的中间
+ */
 - (CGRect)frameForPlayButton:(UIButton *)playButton atIndex:(NSUInteger)index {
     CGRect pageFrame = [self frameForPageAtIndex:index];
     return CGRectMake(floorf(CGRectGetMidX(pageFrame) - playButton.frame.size.width / 2),
@@ -1089,22 +1208,29 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView {
 	
     // Checks
+#warning TODO _viewIsActive 是什么意思？
+#warning TOLearn 在下面几种情况的时候，
 	if (!_viewIsActive || _performingLayout || _rotating) return;
 	
 	// Tile pages
 	[self tilePages];
-	
+    
+#warning TOLearn 用下面的方法计算 Page 的比较简单 ，
+    // 1.scrollView 的 bounds 和图片的偏移量有关系
+    // 2.计算页码
+    //   (NSInteger)(floorf(CGRectGetMidX(visibleBounds) / CGRectGetWidth(visibleBounds)))
 	// Calculate current page
 	CGRect visibleBounds = _pagingScrollView.bounds;
 	NSInteger index = (NSInteger)(floorf(CGRectGetMidX(visibleBounds) / CGRectGetWidth(visibleBounds)));
+    
     if (index < 0) index = 0;
 	if (index > [self numberOfPhotos] - 1) index = [self numberOfPhotos] - 1;
+    
 	NSUInteger previousCurrentPage = _currentPageIndex;
 	_currentPageIndex = index;
-	if (_currentPageIndex != previousCurrentPage) {
+	if (_currentPageIndex != previousCurrentPage) { // 当前页码改变
         [self didStartViewingPageAtIndex:index];
     }
-	
 }
 
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
@@ -1120,9 +1246,17 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 #pragma mark - Navigation
 
 //****************************************
+/**
+ *  1.设置 title
+ *  2.设置 导航 button
+ */
 - (void)updateNavigation {
     
 	// Title
+    // 设置 title
+    // 1.格栅选图
+    // 2.代理提供
+    // 3.根据图片的数量显示
     NSUInteger numberOfPhotos = [self numberOfPhotos];
     if (_gridController) {
         if (_gridController.selectionMode) {
@@ -1147,10 +1281,13 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	}
 	
 	// Buttons
+    // 设置向前，向后按钮
 	_previousButton.enabled = (_currentPageIndex > 0);
 	_nextButton.enabled = (_currentPageIndex < numberOfPhotos - 1);
     
     // Disable action button if there is no image or it's a video
+    // 图片为空 或者 是一个视频时，隐藏 action button
+#warning TODO actionButton 的作用
     MWPhoto *photo = [self photoAtIndex:_currentPageIndex];
     if ([photo underlyingImage] == nil || ([photo respondsToSelector:@selector(isVideo)] && photo.isVideo)) {
         _actionButton.enabled = NO;
@@ -1311,17 +1448,26 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
 }
 
+/**
+ *  1.将播放视频的控制器停止并清除
+ *  2.隐藏当前的播放按钮
+ *  3.将 _currentVideoIndex 标记为 NSUIntegerMax;
+ */
 - (void)clearCurrentVideo {
+    // 清除视频播放
+    // 有两个控制器用于播放 视频
     // 1 AVPlayerViewController
     //AVPlayerViewController *playerViewController; NS_CLASS_AVAILABLE_IOS(8_0)
     
     // 2 MPMoviePlayerViewController
     //NS_DEPRECATED_IOS(3_2, 9_0, "Use AVPlayerViewController in AVKit.")
+    
     //__TVOS_PROHIBITED
     [_currentVideoPlayerViewController.moviePlayer stop];
     [_currentVideoLoadingIndicator removeFromSuperview];
     _currentVideoPlayerViewController = nil;
     _currentVideoLoadingIndicator = nil;
+    
     [[self pageDisplayedAtIndex:_currentVideoIndex] playButton].hidden = NO;
     _currentVideoIndex = NSUIntegerMax;
 }
@@ -1341,6 +1487,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     }
 }
 
+/**
+ *  调整 
+ */
 - (void)positionVideoLoadingIndicator {
     if (_currentVideoLoadingIndicator && _currentVideoIndex != NSUIntegerMax) {
         CGRect frame = [self frameForPageAtIndex:_currentVideoIndex];
@@ -1445,13 +1594,18 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 
 #pragma mark - Control Hiding / Showing
 
+/**
+ *  设置 statusBar ，navigation bar，ToolBar，captionView 的显示和隐藏
+ */
 // If permanent then we don't set timers to hide again
 // Fades all controls on iOS 5 & 6, and iOS 7 controls slide and fade
+#warning TODO permanent 的参数的目的是什么？
 - (void)setControlsHidden:(BOOL)hidden animated:(BOOL)animated permanent:(BOOL)permanent {
     
     // Force visible
-    if (![self numberOfPhotos] || _gridController || _alwaysShowControls)
+    if (![self numberOfPhotos] || _gridController || _alwaysShowControls) {
         hidden = NO;
+    }
     
     // Cancel any timers
     [self cancelControlHiding];
@@ -1483,7 +1637,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     
     // Toolbar, nav bar and captions
     // Pre-appear animation positions for sliding
-    if ([self areControlsHidden] && !hidden && animated) {
+    if ([self areControlsHidden] && !hidden && animated) { // 显示的时候
         
         // Toolbar
         _toolbar.frame = CGRectOffset([self frameForToolbarAtOrientation:self.interfaceOrientation], 0, animatonOffset);
@@ -1493,13 +1647,16 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
             if (page.captionView) {
                 MWCaptionView *v = page.captionView;
                 // Pass any index, all we're interested in is the Y
+                // 传入任意一个 index，我们只关心 y 值
                 CGRect captionFrame = [self frameForCaptionView:v atIndex:0];
+                // 重置 x 值
                 captionFrame.origin.x = v.frame.origin.x; // Reset X
                 v.frame = CGRectOffset(captionFrame, 0, animatonOffset);
             }
         }
         
     }
+    
     [UIView animateWithDuration:animationDuration animations:^(void) {
         
         CGFloat alpha = hidden ? 0 : 1;
@@ -1509,7 +1666,7 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
         
         // Toolbar
         _toolbar.frame = [self frameForToolbarAtOrientation:self.interfaceOrientation];
-        if (hidden) _toolbar.frame = CGRectOffset(_toolbar.frame, 0, animatonOffset);
+        if (hidden) _toolbar.frame = CGRectOffset(_toolbar.frame, 0, animatonOffset); // 隐藏的时候
         _toolbar.alpha = alpha;
 
         // Captions
@@ -1544,7 +1701,9 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 	
 }
 
+//- (BOOL)prefersStatusBarHidden NS_AVAILABLE_IOS(7_0) __TVOS_PROHIBITED; // Defaults to NO
 - (BOOL)prefersStatusBarHidden {
+#warning TODO _leaveStatusBarAlone 这个是怎么赋值的？
     if (!_leaveStatusBarAlone) {
         return _statusBarShouldBeHidden;
     } else {
@@ -1552,12 +1711,25 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
     }
 }
 
+
 - (UIStatusBarStyle)preferredStatusBarStyle {
     return UIStatusBarStyleLightContent;
 }
 
+/**
+ // Override to return the type of animation that should be used for status bar changes for this view controller. This currently only affects changes to prefersStatusBarHidden.
+ - (UIStatusBarAnimation)preferredStatusBarUpdateAnimation NS_AVAILABLE_IOS(7_0) __TVOS_PROHIBITED; // Defaults to UIStatusBarAnimationFade
+ 
+ typedef NS_ENUM(NSInteger, UIStatusBarAnimation) {
+    UIStatusBarAnimationNone,
+    UIStatusBarAnimationFade NS_ENUM_AVAILABLE_IOS(3_2),
+    UIStatusBarAnimationSlide NS_ENUM_AVAILABLE_IOS(3_2),
+ } __TVOS_PROHIBITED;
+ 
+ */
 - (UIStatusBarAnimation)preferredStatusBarUpdateAnimation {
-    return UIStatusBarAnimationSlide;
+    return UIStatusBarAnimationSlide; // 向上移动
+//    return UIStatusBarAnimationFade;// 淡入淡出
 }
 
 - (void)cancelControlHiding {
@@ -1577,7 +1749,11 @@ static void * MWVideoPlayerObservation = &MWVideoPlayerObservation;
 }
 
 - (BOOL)areControlsHidden { return (_toolbar.alpha == 0); }
-- (void)hideControls { [self setControlsHidden:YES animated:YES permanent:NO]; }
+
+- (void)hideControls {
+    [self setControlsHidden:YES animated:YES permanent:NO];
+}
+
 - (void)showControls { [self setControlsHidden:NO animated:YES permanent:NO]; }
 - (void)toggleControls { [self setControlsHidden:![self areControlsHidden] animated:YES permanent:NO]; }
 

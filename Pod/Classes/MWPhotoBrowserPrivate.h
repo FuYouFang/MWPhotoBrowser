@@ -30,8 +30,10 @@
     NSMutableSet *_visiblePages;
     NSMutableSet*_recycledPages;
 	NSUInteger _currentPageIndex;
+    // 更换图片时的上一张图片
     NSUInteger _previousPageIndex;
     CGRect _previousLayoutBounds;
+    /** 发生旋转之前的 Index */
 	NSUInteger _pageIndexBeforeRotation;
 	
 	// Navigation & controls
@@ -49,6 +51,7 @@
     BOOL _previousNavBarHidden;
     BOOL _previousNavBarTranslucent;
     UIBarStyle _previousNavBarStyle;
+    /** 上一个 Controller 的 statusBarStyle 的样式 */
     UIStatusBarStyle _previousStatusBarStyle;
     UIColor *_previousNavBarTintColor;
     UIColor *_previousNavBarBarTintColor;
@@ -59,6 +62,7 @@
     
 
     // Video
+    // NS_DEPRECATED_IOS(3_2, 9_0, "Use AVPlayerViewController in AVKit.")
     MPMoviePlayerViewController *_currentVideoPlayerViewController;
     NSUInteger _currentVideoIndex;
     // NS_CLASS_AVAILABLE_IOS(2_0)
@@ -69,12 +73,16 @@
     BOOL _isVCBasedStatusBarAppearance;
     BOOL _statusBarShouldBeHidden;
     BOOL _displayActionButton;
+    // 上一个 Controller 是否是隐藏的
     BOOL _leaveStatusBarAlone;
+    /** 是否正在设置界面信息 */
 	BOOL _performingLayout;
 	BOOL _rotating;
     BOOL _viewIsActive; // active as in it's in the view heirarchy
+    // 是否保存了上个 navbar 的样式
     BOOL _didSavePreviousStateOfNavBar;
     BOOL _skipNextPagingScrollViewPositioning;
+    /** view 是否显示完成 */
     BOOL _viewHasAppearedInitially;
     CGPoint _currentGridContentOffset;
     

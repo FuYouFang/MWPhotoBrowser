@@ -26,8 +26,11 @@
 - (id)initWithPhotoBrowser:(MWPhotoBrowser *)browser;
 - (void)displayImage;
 - (void)displayImageFailure;
+
 - (void)setMaxMinZoomScalesForCurrentBounds;
+
 - (void)prepareForReuse;
+/** 是否为 视频 */
 - (BOOL)displayingVideo;
 - (void)setImageHidden:(BOOL)hidden;
 
